@@ -47,9 +47,15 @@ async function run() {
       const services = await cursor.toArray();
       res.send(services)
     })
+// User data saw section 
+
+app.get('/user',async(req,res)=>{
+  const users = await userCollection.find().toArray();
+  res.send(users)
+})
 
 
-    //Admin section
+    //deshbord section
     app.put('/user/:email', async (req, res) => {
       const email = req.params.email;
       const user = req.body;
