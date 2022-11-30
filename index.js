@@ -47,15 +47,27 @@ async function run() {
       const services = await cursor.toArray();
       res.send(services)
     })
-// User data saw section 
+// User data Email section 
 
-app.get('/user',async(req,res)=>{
+app.get('/user', verifyJWT, async (req, res) => {
   const users = await userCollection.find().toArray();
-  res.send(users)
-})
+  res.send(users);
+});
 
 
-    //deshbord section
+
+
+   
+    app.put('/user/admin/:email',verifyJWT, async (req, res) => {
+      const email = req.params.email;
+      const filter = { email: email };
+      const updateDoc = {
+        $set: {role:'admin'},
+      };
+      const result = await userCollection.updateOne(filter, updateDoc,)
+      res.send(result );
+    })
+     //deshbord section
     app.put('/user/:email', async (req, res) => {
       const email = req.params.email;
       const user = req.body;
