@@ -47,27 +47,40 @@ async function run() {
       const services = await cursor.toArray();
       res.send(services)
     })
-// User data Email section 
+    // User data Email section 
 
-app.get('/user', verifyJWT, async (req, res) => {
-  const users = await userCollection.find().toArray();
-  res.send(users);
-});
+    app.get('/user', verifyJWT, async (req, res) => {
+      const users = await userCollection.find().toArray();
+      res.send(users);
+    });
+
+app.get('/admin/:email',async(req,res)=>{
+  const email = req.params.email;
+  const user = await userCollection.findOne({email:email});
+  const isAdmin = user.role ==='admin';
+  res.send({admin:isAdmin})
+})
 
 
 
-
-   
-    app.put('/user/admin/:email',verifyJWT, async (req, res) => {
+    app.put('/user/admin/:email', verifyJWT, async (req, res) => {
       const email = req.params.email;
-      const filter = { email: email };
-      const updateDoc = {
-        $set: {role:'admin'},
-      };
-      const result = await userCollection.updateOne(filter, updateDoc,)
-      res.send(result );
+      const requestor = req.decoded.email;
+      const requestorAccount = await userCollection.findOne({ email: requestor })
+      if (requestorAccount.role === 'admin') {
+        const filter = { email: email };
+        const updateDoc = {
+          $set: { role: 'admin' },
+        };
+        const result = await userCollection.updateOne(filter, updateDoc,)
+        res.send(result);
+      }
+      else{
+        res.status(403).send({message:'forbidden'})
+      }
+
     })
-     //deshbord section
+    //deshbord section
     app.put('/user/:email', async (req, res) => {
       const email = req.params.email;
       const user = req.body;
@@ -106,14 +119,14 @@ app.get('/user', verifyJWT, async (req, res) => {
     app.get('/booking', verifyJWT, async (req, res) => {
       const patient = req.query.patient;
       const decodedEmail = req.decoded.email;
-      if(patient === decodedEmail){
+      if (patient === decodedEmail) {
         const query = { patient: patient };
         const bookings = await bookingCollection.find(query).toArray();
-       return res.send(bookings);
+        return res.send(bookings);
       }
-else{
-  return res.status(403).send({message: 'forbidden access'})
-}
+      else {
+        return res.status(403).send({ message: 'forbidden access' })
+      }
 
     })
 
