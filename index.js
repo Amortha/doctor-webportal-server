@@ -3,6 +3,8 @@ const cors = require('cors');
 require('dotenv').config();
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const jwt = require('jsonwebtoken');
+var nodemailer = require('nodemailer');
+var sgTransport = require('nodemailer-sendgrid-transport');
 
 const app = express()
 const port = process.env.PORT || 5000;
@@ -32,6 +34,10 @@ function verifyJWT(req, res, next) {
   });
 }
 
+
+function sendAppointmentEmail(email,name,data,slot){
+
+}
 
 async function run() {
   try {
@@ -148,6 +154,8 @@ async function run() {
         return res.send({ success: false, booking: exists })
       }
       const result = await bookingCollection.insertOne(booking);
+      sendAppointmentEmail(booking.patient,booking.patientName,booking.data,booking.slot);
+      
       return res.send({ success: true, result });
     });
 
