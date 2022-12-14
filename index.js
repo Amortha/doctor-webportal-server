@@ -48,7 +48,7 @@ function sendAppointmentEmail(booking) {
 
   var email = {
     from: process.env.EMAIL_SENDER,
-    to:patient,
+    to: patient,
     subject: `your Appointment for ${treatment} is on ${date} at ${slot} is Confirmed`,
     text: `your Appointment for ${treatment} is on ${date} at ${slot} is Confirmed`,
     html: `
@@ -67,7 +67,41 @@ function sendAppointmentEmail(booking) {
   `
   };
   emailClint.sendMail(email, function (err, info) {
-    if (err){
+    if (err) {
+      console.log(err)
+    }
+    else {
+      console.log('Message sent: ', info);
+    }
+  });
+
+}
+function sendPaymentConfirmationEmail(booking) {
+  const { patient, patientName, treatment, date, slot } = booking;
+
+  var email = {
+    from: process.env.EMAIL_SENDER,
+    to: patient,
+    subject: `we have received payment for ${treatment} is on ${date} at ${slot} is Confirmed`,
+    text: `your Appointment for this Appointment for${treatment} is on ${date} at ${slot} is Confirmed`,
+    html: `
+
+  <div>
+  <p>Hello ${patientName},</p>
+ <h3>thank you for your payment</h3>
+ <h3>we have received your payment</h3>
+ <p>Looking forward to seeing you on ${date} at ${slot}.</P>
+
+
+ <h3>Our Address</h3>
+ <p>Andor Killa Bandorban</P>
+ <p>Bangladesh </p>
+ <a href = "wondrous-mandazi-e22e31.netlify.app">Developer by Amortha</a>
+  </div>
+  `
+  };
+  emailClint.sendMail(email, function (err, info) {
+    if (err) {
       console.log(err)
     }
     else {
@@ -84,6 +118,7 @@ async function run() {
     const bookingCollection = client.db('doctorsweb_portal').collection('bookings');
     const userCollection = client.db('doctorsweb_portal').collection('users');
     const doctorCollection = client.db('doctorsweb_portal').collection('doctors');
+    const paymentCollection = client.db('doctorsweb_portal').collection('payments');
 
 
     const verifyAdmin = async (req, res, next) => {
@@ -99,19 +134,19 @@ async function run() {
       }
     }
 
-// paymant section
+    // paymant section
 
-app.post('/create-payment-intent',verifyJWT, async(req,res) =>{
-  const service = req.body;
-  const price = service.price;
-  const amount =price*100;
-  const paymentIntent = await stripe.paymentIntents.create({
-    amount : amount,
-    currency:'usd',
-    payment_method_types:['card']
-  });
-  res.send({clientSecret: paymentIntent.client_secret})
-})
+    app.post('/create-payment-intent', verifyJWT, async (req, res) => {
+      const service = req.body;
+      const price = service.price;
+      const amount = price * 100;
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: 'usd',
+        payment_method_types: ['card']
+      });
+      res.send({ clientSecret: paymentIntent.client_secret })
+    })
 
 
     // data Storage
@@ -198,12 +233,12 @@ app.post('/create-payment-intent',verifyJWT, async(req,res) =>{
     });
 
     // payment related
-app.get('/booking/:id',verifyJWT, async(req,res)=>{
-const id = req.params.id;
-const query = {_id: ObjectId(id)};
-const booking = await bookingCollection.findOne(query);
-res.send(booking);
-})
+    app.get('/booking/:id', verifyJWT, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const booking = await bookingCollection.findOne(query);
+      res.send(booking);
+    })
 
 
 
@@ -221,6 +256,23 @@ res.send(booking);
 
       return res.send({ success: true, result });
     });
+    // payment 
+
+    app.patch('/booking/:id', verifyJWT, async(req, res) =>{
+      const id  = req.params.id;
+      const payment = req.body;
+      const filter = {_id: ObjectId(id)};
+      const updatedDoc = {
+        $set: {
+          paid: true,
+          transactionId: payment.transactionId
+        }
+      }
+
+      const result = await paymentCollection.insertOne(payment);
+      const updatedBooking = await bookingCollection.updateOne(filter, updatedDoc);
+      res.send(updatedBooking);
+    })
 
     app.get('/doctor', verifyJWT, verifyAdmin, async (req, res) => {
       const doctors = await doctorCollection.find().toArray();
